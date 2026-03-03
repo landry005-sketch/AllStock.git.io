@@ -1,0 +1,60 @@
+@import "tailwindcss";
+@plugin "daisyui" {
+  themes: light --default, dark --prefersdark;
+}
+
+
+
+
+.icons{
+  vertical-align: middle;
+  line-height: 1px;
+  font-size: 26px;
+}
+.icons_header{
+  vertical-align: middle;
+  line-height: 1px;
+  font-size: 26px;
+}
+.icons, .icons_header{
+  margin-right: 5px;
+}
+.grid-container{
+  display: grid;
+  grid-template-columns: 260px 1fr 1fr 1fr;
+  grid-template-rows: 0.2fr 3fr;
+  grid-template-areas: 
+    'sidebar header header header'
+    'sidebar main main main';
+  ;
+  height: 100vh;
+}
+
+.header{
+  
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  
+  box-shadow: 0 6px 7px -3px rgba(0, 0, 0, 0.35);
+}
+.menu-icons{
+  display: none;
+}
+
+#sidebar{
+  
+  height: 100%;
+  background-color: #263043;
+  
+}
+
+.sidebar-list-item > a{
+  text-decoration: none;
+  color: #9e9ea4;
+}
+
+.img{
+  background-image: url('/public/a.jpg');
+}
