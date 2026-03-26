@@ -1,9 +1,11 @@
 import type { Request, Response } from 'express';
 import bcrypt from 'bcrypt';
-import {query} from '../config/db.js';
+import {pool, query} from '../config/db.js';
 import jwt from 'jsonwebtoken'
 import { v2 as cloudinary } from 'cloudinary';
 import { rejects } from 'node:assert';
+import { sendCredentialsEmail } from '../mail/email.services.js';
+import crypto from 'crypto';
 
 
 cloudinary.config({
@@ -96,53 +98,223 @@ export const registerEmployee = async (req: Request, res: Response) => {
         return res.status(500).json({ error: "Erreur serveur", details: error.message });
     }
 };
+export const adminCreateUser = async (req: Request, res: Response): Promise<void> => {
+  // On récupère le rôle choisi par l'admin dans le formulaire
+  const { username, email, role, org_id, orgName } = req.body;
 
-export const login = async (req:Request, res:Response) =>{
-    const {identifier, password} =req.body;
-    try{
-        //on cherche et recupere l'utilisateur par son adresse mail
-        const userRes = await query(
-            'SELECT * FROM users WHERE nom_utilisateur=$1 OR email=$1',[identifier]
+  try {
+    // Génération du mot de passe temporaire
+    const tempPassword = Math.random().toString(36).slice(-10);
+    const hashedPassword = await bcrypt.hash(tempPassword, 10);
+
+    // Requête INSERT : On passe la variable 'role' qui vient du front-end
+    const query = `
+      INSERT INTO users (nom, email, passeword, role, org_id) 
+      VALUES ($1, $2, $3, $4, $5) 
+      RETURNING id;
+    `;
+    const values = [username, email, hashedPassword, role, org_id];
+
+    await pool.query(query, values);
+
+    // Envoi des accès par mail à l'employé
+    await sendCredentialsEmail({
+      email,
+      username,
+      tempPassword,
+      orgName
+    });
+
+    res.status(201).json({ message: "Utilisateur créé avec le rôle " + role });
+  } catch (error) {
+    res.status(500).json({ error: "Erreur lors de l'insertion en base de données" });
+  }
+};
+export const getRoles = async (req: Request, res: Response): Promise<void> => {
+  try {
+    // On récupère les noms des rôles (ex: ADMIN, STAFF, MANAGER)
+    const roles = await pool.query("SELECT id, nom_role FROM roles"); 
+    res.json(roles.rows);
+  } catch (error) {
+    res.status(500).json({ error: "Erreur lors de la récupération des rôles" });
+  }
+};
+export const getAllUsers = async (req: Request, res: Response) => {
+  try {
+    if (!req.user) {
+        return res.status(401).json({ error: "Utilisateur non authentifié" });
+    }
+    // On récupère l'organisation de l'utilisateur connecté (depuis le token)
+    const { org_id } = req.user; 
+
+    const query = `
+      SELECT 
+        id, 
+        nom_utilisateur as username, 
+        email, 
+        role, 
+        login_time as "loginTime", 
+        logout_time as "logoutTime",
+        org_id
+      FROM users 
+      WHERE org_id = $1
+      ORDER BY nom_utilisateur ASC
+    `;
+    
+    const result = await pool.query(query, [org_id]);
+    res.status(200).json(result.rows);
+  } catch (error) {
+    console.error("Erreur getAllUsers:", error);
+    res.status(500).json({ message: "Erreur serveur" });
+  }
+};
+export const createUser = async (req: Request, res: Response) => {
+    const { nom_utilisateur, email, role } = req.body;
+     if (!req.user) {
+        return res.status(401).json({ error: "Utilisateur non authentifié" });
+    }
+    const { org_id } = req.user; // On récupère l'ID de l'organisation via le token
+
+    try {
+        // 1. Générer un mot de passe provisoire de 10 caractères
+        const tempPassword = crypto.randomBytes(5).toString('hex');
+
+        // 2. Hacher le mot de passe pour la base de données
+        const salt = await bcrypt.genSalt(10);
+        const passwordHash = await bcrypt.hash(tempPassword, salt);
+        const orgRes = await pool.query('SELECT nom FROM organisations WHERE id = $1', [org_id]);
+        const orgName = orgRes.rows[0]?.nom || "StockFlow";
+        // 3. Enregistrer l'utilisateur dans PostgreSQL
+        const newUser = await pool.query(
+            `INSERT INTO users (nom_utilisateur, email, passeword_hash, role, org_id, must_change_password) 
+             VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+            [nom_utilisateur, email, passwordHash, role, org_id, true]
+        );
+        await sendCredentialsEmail({
+            email: email,
+            username: nom_utilisateur,
+            tempPassword: tempPassword,
+            orgName: orgName 
+        });
+
+        res.status(201).json({ 
+            message: "Utilisateur créé et email envoyé avec succès",
+            user: {
+                id: newUser.rows[0].id,
+                username: newUser.rows[0].nom_utilisateur,
+                email: newUser.rows[0].email,
+                role: newUser.rows[0].role,
+                org_id: newUser.rows[0].org_id
+            }
+        });
+
+    } catch (error) {
+        console.error("Erreur création utilisateur:", error);
+        res.status(500).json({ error: "Échec de la création de l'utilisateur" });
+    }
+};
+export const completeSetup = async (req: Request, res: Response) => {
+    const { userId, newPassword } = req.body;
+
+    try {
+        // 1. On hache le nouveau mot de passe choisi par l'utilisateur
+        const salt = await bcrypt.genSalt(10);
+        const hashedPw = await bcrypt.hash(newPassword, salt);
+
+        // 2. Mise à jour de la DB : Nouveau mot de passe + Flag à FALSE
+        const result = await pool.query(
+            'UPDATE users SET passeword_hash = $1, must_change_password = FALSE WHERE id = $2 RETURNING id, nom_utilisateur, email, role, org_id',
+            [hashedPw, userId]
         );
 
-        if (userRes.rows.length === 0){
-            return res.status(401).json({error: "Identifiants invalides."});
+        if (result.rowCount === 0) {
+            return res.status(404).json({ error: "Utilisateur non trouvé." });
+        }
+
+        const user = result.rows[0];
+
+        // 3. On génère maintenant le vrai Token pour qu'il puisse se connecter directement
+        const token = jwt.sign(
+            { userId: user.id, orgId: user.org_id, role: user.role },
+            process.env.JWT_SECRET as string,
+            { expiresIn: '24h' }
+        );
+
+        res.status(200).json({
+            message: "Mot de passe mis à jour avec succès !",
+            token,
+            user: {
+                id: user.id,
+                name: user.nom_utilisateur,
+                role: user.role,
+                orgId: user.org_id
+            }
+        });
+
+    } catch (error) {
+        console.error("Erreur completeSetup:", error);
+        res.status(500).json({ error: "Erreur lors de la mise à jour du mot de passe." });
+    }
+};
+export const login = async (req: Request, res: Response) => {
+    const { identifier, password } = req.body;
+    try {
+        // 1. On cherche l'utilisateur (Correction : nom_utilisateur)
+        const userRes = await query(
+            'SELECT * FROM users WHERE nom_utilisateur=$1 OR email=$1', [identifier]
+        );
+
+        if (userRes.rows.length === 0) {
+            return res.status(401).json({ error: "Identifiants invalides." });
         }
         const user = userRes.rows[0];
 
-        // Verifier le mot de passe avec Bcrypt
-
+        // 2. Vérifier le mot de passe
         const isMatch = await bcrypt.compare(password, user.passeword_hash);
-
-        if (!isMatch){
-            return res.status(401).json({error: "Identifiants non valides"});
+        if (!isMatch) {
+            return res.status(401).json({ error: "Identifiants non valides" });
         }
 
-        //Creer le token
+        if (user.must_change_password) {
+            return res.status(200).json({
+                mustChangePassword: true,
+                userId: user.id,
+                message: "Changement de mot de passe requis."
+            });
+        }
+        // --- AJOUT : MISE À JOUR DU STATUT EN LIGNE ---
+        // On met login_time à l'heure actuelle et on vide logout_time
+        await query(
+            'UPDATE users SET login_time = NOW(), logout_time = NULL WHERE id = $1',
+            [user.id]
+        );
+        // ----------------------------------------------
+
+        // 3. Créer le token (On garde orgId pour le multi-tenant de StockFlow)
         const token = jwt.sign({
             username: user.nom_utilisateur,
             userId: user.id,
             role: user.role,
-            orgId: user.org_id
+            org_id: user.org_id
         },
             process.env.JWT_SECRET as string,
-            {expiresIn: '24h'}
+            { expiresIn: '24h' }
         );
 
-        //envoyer le reponse
+        // 4. Envoyer la réponse
         res.json({
             message: "Connexion reussie",
             token,
             user: {
-                username: user.nom_utilisateur,
+                id: user.id,
+                name: user.nom_utilisateur, // Utilise 'name' pour correspondre à ton composant Users.tsx
                 email: user.email,
                 role: user.role,
-                orgId: user.org_Id
+                org_id: user.org_id // Attention : 'org_id' et non 'org_Id' (casse)
             }
         });
-    }catch(error){
+    } catch (error) {
         console.error("Erreur Login:", error);
-        res.status(500).json({error: "Erreur seveur lors de la connexion."});
+        res.status(500).json({ error: "Erreur serveur lors de la connexion." });
     }
 };
-

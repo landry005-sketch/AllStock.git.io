@@ -1,6 +1,9 @@
 import {Router} from 'express';
-import {login, registerDirector, registerEmployee} from '../controllers/authController.js';
+import {adminCreateUser, completeSetup, getAllUsers, getRoles, login, registerDirector, registerEmployee} from '../controllers/authController.js';
 import { upload } from '../middlewares/upload.js';
+import { getCategoryByOrg } from '../controllers/CategoryController.js';
+import { getMarqueByOrg } from '../controllers/MarqueController.js';
+import { authenticateToken } from '../middlewares/authMiddleware.js';
 
 const router = Router();
 /**
@@ -16,13 +19,25 @@ router.post('/register-director',upload.single('logo'),registerDirector);
  * @access Public (nécessite le code de l'organisation)
  */
 
-router.post('/register-employee', upload.single('logo'),registerEmployee);
+router.post('/employee', upload.single('logo'),registerEmployee);
 
 /**
  * @route POST/api/auth/login
  * @desc Connexion universelle
  */
+/**
+ * @route GET /api/auth/roles
+ * @desc Récupère les rôles disponibles en base de données pour le menu déroulant
+ */
 
+/**
+ * @route POST /api/auth/admin-create-user
+ * @desc Création d'un compte par l'admin + envoi de mail avec identifiants
+ */
+router.post('/admin-create-user', upload.single('photo'), adminCreateUser);
 router.post('/login',upload.single('logo'),login)
+// route pour les categories
 
+//Changement de mot de passe
+router.post('/complete-setup', completeSetup);
 export default router

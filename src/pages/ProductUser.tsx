@@ -1,7 +1,39 @@
 import { Building2, Container, Pen, Plus, Trash2 } from 'lucide-react'
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 
 const ProductUser = () => {
+  {/**recuperation des données */}
+  const fetchCategory = async (org_id: string) =>{
+    try {
+      const response = await fetch (`http://localhost:5000/api/auth/by-org?org_id=${org_id}`);
+      if (!response.ok) throw new Error ("Erreur lors du chargement des catégories");
+      return await response.json();
+    }catch(error){
+      console.error(error);
+      return [];
+    }
+  }
+  const fetchMarques = async (orgId: string) => {
+  try {
+    const response = await fetch(`http://localhost:5000/api/auth/by-org-marque?org_id=${orgId}`);
+    if (!response.ok) throw new Error("Erreur marques");
+    const data = await response.json();
+    setMarque(data);
+  } catch (err) {
+    console.error("Erreur fetchMarques:", err);
+    return [];
+  }
+};
+  /**Chargement des données */
+  const [categories, setCategories] = useState([]);
+  const [marque, setMarque] = useState([]);
+  useEffect(() =>{
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    if (user.org_id){
+      fetchCategory(user.org_id);
+      fetchMarques(user.org_id);
+    };
+  }, []);
   return (
     <div className='flex flex-col relative'>
             <div className='flex w-full absolute shadow-2xl shadow-gray-600 rounded-2xl border justify-start border-gray-300 bg-gray-50 px-8 py-3'>
