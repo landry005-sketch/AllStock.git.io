@@ -148,7 +148,7 @@ const Users = () => {
     const startTime = new Date(user.loginTime)
     const minutes = differenceInMinutes(endTime, startTime);
     const hours = Math.floor(minutes/60);
-    const mins = minutes % 60;
+    
     return `${hours}h ${minutes}min`;
   }
    const handleDeleteUser = async  (userId: string, userRole: string) => {

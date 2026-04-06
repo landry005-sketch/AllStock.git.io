@@ -125,7 +125,7 @@ export default function DashboardHome() {
         </Card>
       </div>
 
-      {/* Section Financière DYNAMIQUE */}
+      
       {(currentUser.role === "ADMIN" || currentUser.role === "MANAGER") && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <Card className="bg-blue-50/50 dark:bg-blue-400 border-blue-100">
@@ -162,7 +162,7 @@ export default function DashboardHome() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card className="dark:bg-[#0f172a]">
           <CardHeader><CardTitle className="text-md">Top 5 Performances</CardTitle></CardHeader>
-          <CardContent className="h-[300px]">
+          <CardContent className="h-75">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={topProducts.map(p => ({ name: p.name.substring(0, 10), ventes: p.sales }))}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} />

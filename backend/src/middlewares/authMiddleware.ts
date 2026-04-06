@@ -12,6 +12,7 @@ export const authenticateToken = (req:Request, res:Response, next: NextFunction)
     jwt.verify(token, process.env.JWT_SECRET as string, (err, decoded)=>{
         if (err) return res.status(403).json({error: "Token invalide ou expiré."});
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (req as any).user = decoded;
         next();
     });

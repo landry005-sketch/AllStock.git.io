@@ -129,10 +129,10 @@ const DashboardLayout = () => {
           {/* User Profile Card */}
           <div className="bg-gray-50 rounded-xl p-4 mb-6 border dark:border-0 dark:bg-[#0f172a] border-gray-100">
             <div className="flex items-center gap-3 mb-3">
-              <UserAvatar name={currentUser.name} photoUrl={currentUser.logoUrl} size="md" />
+              <UserAvatar name={currentUser.username} photoUrl={currentUser.photoUrl} size="lg" />
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-gray-900 truncate">{currentUser.name}</p>
-                <p className="text-xs text-gray-500 truncate">{currentUser.email}</p>
+                <p className="text-sm font-semibold text-gray-900 truncate">{currentUser.username}</p>
+                <p className="text-xs text-gray-500 truncate">{currentUser.username}</p>
               </div>
             </div>
             <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full uppercase tracking-wider ${getRoleBadgeColor(currentUser.role)}`}>
@@ -194,7 +194,13 @@ const DashboardLayout = () => {
                   <p className="text-[10px] text-gray-400 font-mono tracking-tighter">ID: {currentUser.orgCode || "---"}</p>
                 )}
               </div>
-              <OrgLogo logoUrl={currentUser.logoUrl} orgName={currentUser.orgName || "AllStock"} size="md" />
+              <div className="bg-white p-1 rounded-full shadow-sm border border-gray-200 inline-flex items-center justify-center overflow-hidden">
+                <OrgLogo 
+                  logoUrl={currentUser.logoUrl} 
+                  orgName={currentUser.orgName || "AllStock"} 
+                  size="lg" 
+                />
+              </div>
             </div>
           </div>
         </header>

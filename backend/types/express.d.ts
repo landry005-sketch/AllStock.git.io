@@ -1,4 +1,4 @@
-// types/express.d.ts
+types/express.d.ts
 import { UserPayload } from './auth'; // Si tu as un type pour ton token
 
 declare global {

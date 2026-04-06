@@ -27,7 +27,7 @@ const UNITES_OPTIONS = [
   { label: "Mètre", value: "metre" },
 ];
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select";
-import { Package, Plus, Trash2, Edit, QrCode, AlertCircle, Loader2 } from "lucide-react";
+import { Package, Plus, Trash2, Edit, QrCode, AlertCircle, Loader2, SquareDashed, Barcode, ScanBarcode } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "react-toastify";
 
@@ -238,9 +238,16 @@ export default function Products() {
                   <Label>Nom du produit</Label>
                   <Input value={newProduct.name} onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })} required />
                 </div>
-                <div>
+                <div className="space-y-2">
                   <Label>Code barre</Label>
-                  
+                  <div className="flex gap-2 justify-center items-center ">
+                    <Input value={newProduct.code_barre} onChange={(e) => setNewProduct({...newProduct, code_barre: e.target.value})}/>
+                    <ScanBarcode className="cursor-pointer"/>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                   <Label>Zone de stockage</Label>
+                   <Input value={newProduct.storageZone} onChange={(e) => setNewProduct({ ...newProduct, storageZone: e.target.value })} />
                 </div>
 
                 <div className="space-y-2">
@@ -262,7 +269,7 @@ export default function Products() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div>
+                <div className="space-y-2">
                   <Label>Unité</Label>
                   <Select
     value={newProduct.unite}

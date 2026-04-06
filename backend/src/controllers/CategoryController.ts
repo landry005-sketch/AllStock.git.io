@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import type { Request, Response } from 'express';
 import {pool, query} from '../config/db';
 
@@ -5,7 +6,7 @@ export const getCategoryByOrg = async (req: Request, res: Response) => {
     // 1. On récupère l'ID soit du token, soit de la requête URL (query)
     // On privilégie req.query car c'est ce que ton React envoie : ?org_id=...
     const org_id = (req.query.org_id as string) || (req as any).user?.org_id;
-
+    console.log("voici le id org:",org_id)
     if (!org_id) {
         console.error("Tentative d'accès sans org_id");
         return res.status(400).json({ error: "Organisation non identifiée" });
@@ -57,7 +58,7 @@ export const deleteCategory = async (req:Request, res:Response) => {
 export const addCategory = async (req: Request, res: Response) => {
     const { name, description } = req.body;
     const org_id = (req as any).user?.org_id || req.body.org_id;
-
+    
     try {
         // 1. VÉRIFICATION : Existe-t-il déjà une catégorie avec ce nom pour cette ORG ?
         const existingCategory = await pool.query(
@@ -81,6 +82,7 @@ export const addCategory = async (req: Request, res: Response) => {
 
     } catch (error) {
         console.error(error);
+        console.log("voici le org_id dans addCategory:", org_id);
         res.status(500).json({ error: "Erreur lors de la création" });
     }
 };

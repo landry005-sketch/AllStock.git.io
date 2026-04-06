@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import  { Button } from '@/components/ui/button'
 import  { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
@@ -12,9 +13,9 @@ import { toast } from 'react-toastify'
 import type { User } from '@/lib/type'
 
 const Categories = () => {
-    const [categories, setCategories] = useState<any[]> ([]);
-    const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-    const [isloading, setIsloading] = useState(false);
+    const [categories, setCategories] = useState<any[]> ([]);
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+const [isloading, setIsloading] = useState(false);
     const [newCategory, setNewCategory] = useState({
         name : "",
         description: "",
@@ -72,6 +73,8 @@ const Categories = () => {
    const handleAddCategory = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsloading(true);
+    const user = JSON.parse(localStorage.getItem('currentUser') || '{}');
+    const org_id = user?.orgCode; // Vérifie si c'est orgCode ou org_id dans ton localStorage
     const toastId = toast.loading("Création de la catégorie...");
 
     try {
@@ -83,7 +86,10 @@ console.log("Token:", token)
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}` 
             },
-            body: JSON.stringify(newCategory),
+            body: JSON.stringify({
+                ...newCategory,
+                org_id: org_id
+            })
           
         });
         console.log("voici:", newCategory)
@@ -104,7 +110,7 @@ console.log("Token:", token)
         } else {
             throw new Error(data.error || "Une categorie avec ce nom existe déjà");
         }
-    } catch (error: any) {
+    } catch (error) {
         toast.update(toastId, { render: "Echec lors de la création", type: "error", isLoading: false, autoClose: 2000 });
         console.log("Erreur:", error)
     } finally {

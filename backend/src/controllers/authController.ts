@@ -3,7 +3,7 @@ import bcrypt from 'bcrypt';
 import {pool, query} from '../config/db.js';
 import jwt from 'jsonwebtoken'
 import { v2 as cloudinary } from 'cloudinary';
-import { rejects } from 'node:assert';
+
 import { sendCredentialsEmail } from '../mail/email.services.js';
 import crypto from 'crypto';
 
@@ -17,7 +17,7 @@ export const registerDirector = async (req:Request, res:Response) =>{
     console.log("Fichier reçu par le backend :", req.file);
     const {username, email, password, orgName } = req.body;
     const file = req.file;
-
+    const client = await pool.connect();
     try{
 
         let logoUrl= '';
@@ -33,30 +33,32 @@ export const registerDirector = async (req:Request, res:Response) =>{
             logoUrl =(await uploadPromise) as string;
         }
         //debut transaction
-        await query('BEGIN');
+        await client.query('BEGIN');
 
         // Creer le code unique
         const orgCode = `${orgName.substring(0, 3).toUpperCase()}-${Math.floor(1000 + Math.random()*9000)}`;
 
         //Inserer l'organisation
-        const orgRes = await query(
-            'INSERT INTO organisations (nom, org_code, logo_url) VALUES ($1, $2, $3) RETURNING id', [orgName, orgCode, logoUrl]
+        const orgRes = await client.query(
+            'INSERT INTO public.organisations (nom, org_code, logo_url) VALUES ($1, $2, $3) RETURNING id', [orgName, orgCode, logoUrl]
         );
         const orgId = orgRes.rows[0].id;
 
         //Hacher le mot de passe et creer l'admin
         const hash = await bcrypt.hash(password, 10);
-        await query(
-            'INSERT INTO users(nom_utilisateur, email, passeword_hash, org_id, role) VALUES($1, $2, $3, $4, $5)',
+        await client.query(
+            'INSERT INTO public.users(nom_utilisateur, email, passeword_hash, org_id, role) VALUES($1, $2, $3, $4, $5)',
             [username,email, hash, orgId, 'ADMIN']
         );
 
-        await query ('COMMIT');
+        await client.query ('COMMIT');
         res.status(201).json({message:"Organisation créée avec succès !", orgCode});
     } catch(error){
         console.error("Detail de l'erreur SQL :", error)
-        await query('ROLLBACK');
+        await client.query('ROLLBACK');
         res.status(500).json({error: "Erreur de l'inscription",details: error instanceof Error ? error.message: error});
+    }finally {
+        client.release();
     }
 };
 
@@ -127,6 +129,7 @@ export const adminCreateUser = async (req: Request, res: Response): Promise<void
 
     res.status(201).json({ message: "Utilisateur créé avec le rôle " + role });
   } catch (error) {
+    console.log("Erreur getRoles:", error);
     res.status(500).json({ error: "Erreur lors de l'insertion en base de données" });
   }
 };
@@ -136,6 +139,7 @@ export const getRoles = async (req: Request, res: Response): Promise<void> => {
     const roles = await pool.query("SELECT id, nom_role FROM roles"); 
     res.json(roles.rows);
   } catch (error) {
+    console.log("Erreur getRoles:", error);
     res.status(500).json({ error: "Erreur lors de la récupération des rôles" });
   }
 };

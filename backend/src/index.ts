@@ -20,7 +20,14 @@ app.use('/api/auth', authRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/stock', stockRoutes);
 app.use('/api/data', dataRoutes);
-app.use('/api/sales', salesRoutes)
+app.use('/api/sales', salesRoutes);
+// Ce bloc va capturer TOUTES les erreurs que tu ne vois pas actuellement
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+app.use((err: any, req: any, res: any, next: any) => {
+  console.error("!!! ERREUR GLOBALE DÉTECTÉE !!!");
+  console.error(err.stack);
+  res.status(500).send("Erreur fatale du serveur");
+});
 
 
 const PORT = process.env.PORT || 5000;

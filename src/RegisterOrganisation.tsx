@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label"; // Et non "recharts"
 import { Input } from './components/ui/input';
 
 const RegisterOrganisation = () => {
-   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, field: "logo" | "photo") => {
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, field: "logo" | "photo") => {
     const file = e.target.files?.[0];
     if (file) {
       setFormData({ ...formData, [field]: file });
@@ -18,7 +18,7 @@ const RegisterOrganisation = () => {
     const [message, SetMessage] = useState('');
     const [isSubmitted, setIsSubmitted] = useState(false);
     const [orgCode, setOrgCode] = useState();
-     const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState({
     username: "",
     orgName: "",
     email: "",
@@ -78,7 +78,7 @@ const RegisterOrganisation = () => {
         }
 
     } catch (err) {
-        console.error("Erreur register director:", err);
+        console.log("Erreur register director:", err);
         SetStatus('error');
         SetMessage("Erreur de connexion au serveur.");
     }

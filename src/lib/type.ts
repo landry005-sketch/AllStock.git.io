@@ -10,7 +10,7 @@ export interface User {
   role: UserRole;
   orgCode?: string;
   orgName?: string;
-  photo?: string;
+  photoUrl?: string;
   logoUrl?: string;
   loginTime?: string;
   logoutTime?: string;
