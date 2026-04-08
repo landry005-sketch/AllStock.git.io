@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
@@ -67,6 +68,7 @@ export default function Sales() {
       }
     } catch (error) {
       toast.error("Erreur de synchronisation des données");
+      console.log('Erreur de synchronisation', error)
     } finally {
       setIsLoading(false);
     }
@@ -154,9 +156,9 @@ export default function Sales() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="md:flex grid gap-2 md:gap-0 items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold mb-2 dark:text-white text-gray-800">Gestion des Ventes</h1>
+          <h1 className="md:text-3xl font-bold mb-2 dark:text-white text-gray-800">Gestion des Ventes</h1>
           <p className="text-gray-600">{sales.length} transactions effectuées</p>
         </div>
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>

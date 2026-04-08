@@ -1,8 +1,6 @@
 import {Router} from 'express';
-import {adminCreateUser, completeSetup, getAllUsers, getRoles, login, registerDirector, registerEmployee} from '../controllers/authController.js';
+import {adminCreateUser, completeSetup, forgotPassword, login, registerDirector, registerEmployee, resetPassword} from '../controllers/authController.js';
 import { upload } from '../middlewares/upload.js';
-import { getCategoryByOrg } from '../controllers/CategoryController.js';
-import { getMarqueByOrg } from '../controllers/MarqueController.js';
 import { authenticateToken } from '../middlewares/authMiddleware.js';
 
 const router = Router();
@@ -36,6 +34,8 @@ router.post('/employee', upload.single('logo'),registerEmployee);
  */
 router.post('/admin-create-user', upload.single('photo'), adminCreateUser);
 router.post('/login',upload.single('logo'),login)
+router.post('/forgot-password', forgotPassword);
+router.post('/reset-password/:token', resetPassword);
 // route pour les categories
 
 //Changement de mot de passe

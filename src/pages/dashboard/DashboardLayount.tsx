@@ -118,65 +118,74 @@ const DashboardLayout = () => {
   return (
     <div className="flex w-screen h-screen bg-gray-100 overflow-hidden">
       {/* SIDEBAR */}
-      <aside className={`${isSidebarOpen ? "w-64" : "w-0"} bg-white shadow-lg transition-all duration-300 overflow-hidden dark:text-amber-900 dark:bg-[#0f172a] dark:border-slate-800 flex flex-col`}>
-        <div className="p-6 flex-1 overflow-y-auto">
-          {/* Logo App */}
-          <div className="flex items-center gap-3 mb-8">
-            <Package className="w-8 h-8 text-indigo-600" />
-            <h1 className="text-2xl font-bold text-indigo-600">AllStock</h1>
-          </div>
+     <aside className={`
+  /* Largeur adaptative */
+  ${isSidebarOpen ? "w-64" : "w-20"} 
+  
+  /* Sur petits écrans, on force le mode réduit ou on adapte */
+  transition-all duration-300 overflow-hidden flex flex-col bg-white shadow-lg dark:bg-[#0f172a]
+`}>
+  <div className="p-4 flex-1 overflow-y-auto overflow-x-hidden">
+    
+    {/* Logo : Texte masqué sur mobile, visible sur desktop si ouvert */}
+    <div className="flex items-center gap-3 mb-8 px-2">
+      <Package className="w-8 h-8 text-indigo-600 shrink-0" />
+      <h1 className={`text-2xl font-bold text-indigo-600 truncate 
+        ${isSidebarOpen ? "block" : "hidden"}`}>
+        AllStock
+      </h1>
+    </div>
 
-          {/* User Profile Card */}
-          <div className="bg-gray-50 rounded-xl p-4 mb-6 border dark:border-0 dark:bg-[#0f172a] border-gray-100">
-            <div className="flex items-center gap-3 mb-3">
-              <UserAvatar name={currentUser.username} photoUrl={currentUser.photoUrl} size="lg" />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-gray-900 truncate">{currentUser.username}</p>
-                <p className="text-xs text-gray-500 truncate">{currentUser.username}</p>
-              </div>
-            </div>
-            <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full uppercase tracking-wider ${getRoleBadgeColor(currentUser.role)}`}>
-              {currentUser.role || "Inconnu"}
+    {/* User Profile : Infos masquées selon la taille */}
+    <div className={`bg-gray-50 rounded-xl p-3 mb-6 border dark:bg-[#1e293b] border-gray-100 flex items-center 
+      ${isSidebarOpen ? 'gap-3' : 'justify-center'}`}>
+      <UserAvatar name={currentUser.username} photoUrl={currentUser.photoUrl} size="sm" />
+      
+      {/* On n'affiche le texte que si le menu est "ouvert" */}
+      <div className={`flex-1 min-w-0 ${isSidebarOpen ? "block" : "hidden"}`}>
+        <p className="text-sm font-semibold text-gray-900 truncate">{currentUser.username}</p>
+        <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full uppercase ${getRoleBadgeColor(currentUser.role)}`}>
+          {currentUser.role}
+        </span>
+      </div>
+    </div>
+
+    {/* Navigation */}
+    <nav className="space-y-2">
+      {filteredMenuItems.map((item) => {
+        const Icon = item.icon;
+        const isActive = location.pathname === item.path;
+        return (
+          <Button
+            key={item.path}
+            variant={isActive ? "secondary" : "ghost"}
+            /* On ajuste l'alignement selon l'état open/close */
+            className={`w-full transition-all ${isSidebarOpen ? "justify-start gap-3 px-4" : "justify-center px-0"} 
+              ${isActive ? "bg-indigo-50 text-indigo-700 font-medium" : "text-gray-600"}`}
+            onClick={() => navigate(item.path)}
+          >
+            <Icon className={`w-6 h-6 shrink-0 ${isActive ? "text-indigo-600" : "text-slate-400"}`} />
+            
+            {/* Texte du menu : Masqué si réduit */}
+            <span className={`font-medium truncate ${isSidebarOpen ? "block" : "hidden"}`}>
+              {item.label}
             </span>
-          </div>
-
-          {/* Navigation */}
-          <nav className="space-y-1 ">
-            {filteredMenuItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = location.pathname === item.path;
-              return (
-                <Button
-                  key={item.path}
-                  variant={isActive ? "secondary" : "ghost"}
-                  className={`w-full justify-start gap-3 ${isActive ? "bg-indigo-50  dark:bg-indigo-500/10 dark:text-indigo-400 text-indigo-700 font-medium" : "text-gray-600  hover:text-indigo-600 dark:text-slate-400 dark:hover:bg-slate-800/50 dark:hover:text-slate-200"}`}
-                  onClick={() => navigate(item.path)}
-                >
-                  <Icon 
-                   key={item.path}
-                  
-                  className={`
-                    w-5 h-5 transition-colors
-                    ${isActive 
-                      ? "text-indigo-600 dark:text-indigo-400" 
-                      : "text-slate-400 group-hover:text-slate-600 dark:text-slate-500 dark:group-hover:text-slate-300"
-                    }
-                  `} />
-                  <span className="font-medium">{item.label}</span>
-                </Button>
-              );
-            })}
-          </nav>
-        </div>
-
-        {/* Logout Bottom */}
-        <div className="p-4 border-t border-gray-100">
-          <Button variant="ghost" className="w-full justify-start text-red-600 hover:bg-red-50 hover:text-red-700 transition-colors" onClick={handleLogout}>
-            <LogOut className="w-5 h-5 mr-3" />
-            Déconnexion
           </Button>
-        </div>
-      </aside>
+        );
+      })}
+    </nav>
+  </div>
+
+  {/* Logout : Masqué si réduit */}
+  <div className="p-4 border-t border-gray-100">
+    <Button variant="ghost" 
+      className={`w-full text-red-600 ${isSidebarOpen ? "justify-start" : "justify-center px-0"}`} 
+      onClick={handleLogout}>
+      <LogOut className={`w-5 h-5 ${isSidebarOpen ? "mr-3" : ""}`} />
+      <span className={isSidebarOpen ? "block" : "hidden"}>Déconnexion</span>
+    </Button>
+  </div>
+</aside>
 
       {/* MAIN CONTENT AREA */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden ">

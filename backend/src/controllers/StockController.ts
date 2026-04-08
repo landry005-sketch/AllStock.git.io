@@ -93,18 +93,20 @@ export const confirmSave = async (req: Request, res: Response) => {
             if (!prod.nom || prod.nom.trim() === "") continue;
 
             const proRes = await client.query(
-                `INSERT INTO produits (nom, unite, prix_achat_unitaire,categorie_id, quantite_stock, code_barre, four_id, org_id)
-                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                `INSERT INTO produits (nom, unite, prix_achat_unitaire, prix_vente_unitaire, categorie_id, quantite_stock, code_barre, four_id, org_id)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
                  ON CONFLICT (nom, org_id) 
                  DO UPDATE SET 
                     quantite_stock = produits.quantite_stock + EXCLUDED.quantite_stock,
                     prix_achat_unitaire = EXCLUDED.prix_achat_unitaire,
+                    prix_vente_unitaire = EXCLUDED.prix_vente_unitaire,
                     code_barre = COALESCE(produits.code_barre, EXCLUDED.code_barre)
                  RETURNING id`,
                 [
                     prod.nom, 
-                    prod.unite || 'pce', 
+                    prod.unite , 
                     prod.prix_achat_unitaire || 0, 
+                    prod.prix_vente_unitaire || 0,
                     prod.categorie_id ,
                     prod.quantite || 0, 
                     prod.code_barre, 

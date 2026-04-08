@@ -90,13 +90,13 @@ const Login = () => {
     };
 
     return (
-        <div className="min-h-screen min-w-screen bg-blue-100 flex items-center justify-center p-4">
+        <div className="min-h-screen min-w-screen dark:bg-[#020617] bg-blue-100 flex items-center justify-center p-4">
             <div className="w-full max-w-md">
                 <Button variant="ghost" onClick={() => navigate("/")} className="mb-4">
                     <ArrowLeft className="w-4 h-4 mr-2" /> Retour
                 </Button>
 
-                <Card>
+                <Card className='dark:bg-[#0f172a]'>
                     <CardHeader className="text-center">
                         <div className="flex items-center justify-center gap-3 mb-2">
                             <Package className="w-10 h-10 text-indigo-600" />
@@ -134,6 +134,11 @@ const Login = () => {
                                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                                     required
                                 />
+                            </div>
+                            <div className='space-y-2 flex justify-center items-center gap-1'>
+                                Mot de passe oublié ?
+                                <button type='button'  onClick={()=>{navigate('/mot-de-passe-oublie')}} className='text-blue-400  cursor-pointer hover:brightness-75 dark:hover:brightness-50 underline'>Cliquez ici</button>
+
                             </div>
 
                             <Button 

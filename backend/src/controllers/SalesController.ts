@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import type { Request, Response } from 'express';
 import { pool } from '../config/db';
 
@@ -36,8 +37,9 @@ const users_id = (req as any).user?.id || (req as any).user?.userId || req.body.
 
         // 3. INSERTION DANS LA TABLE VENTE
         // On enregistre les valeurs récupérées pour garder une trace historique
-        const saleQuery = `
-           INSERT INTO vente (
+   // 1. La requête SQL (On garde tes 10 colonnes cibles)
+const saleQuery = `
+  INSERT INTO vente (
     users_id, 
     produits_id, 
     org_id, 
@@ -47,36 +49,37 @@ const users_id = (req as any).user?.id || (req as any).user?.userId || req.body.
     unite, 
     nom_client, 
     telephone_client,
-    heure
+    heure 
   )
   SELECT 
-    $1, -- users_id
-    $2, -- produits_id (productId)
-    $3, -- org_id
-    $4, -- quantite
-    p.prix_vente_unitaire, -- On prend le prix réel en BD
-    ($4 * p.prix_vente_unitaire), -- Calcul automatique du montant total
-    p.unite, -- ON PREND L'UNITÉ DE LA TABLE PRODUIT ICI
-    $5, -- nom_client
-    $6, -- telephone_client
+    $1::uuid,            -- users_id
+    $2::uuid,            -- produits_id
+    $3::uuid,            -- org_id
+    $4::numeric,         -- quantite
+    p.prix_vente_unitaire, 
+    ($4::numeric * p.prix_vente_unitaire),
+    p.unite, 
+    $5::text,            -- nom_client
+    $6::text,            -- telephone_client
     NOW()
   FROM produits p
   WHERE p.id = $2 AND p.org_id = $3
   RETURNING *;
 `;
-        const newSale = await client.query(saleQuery, [
-            productId,
-            users_id  ,
-            orgId,
-            nomClient ,
-            telephoneClient ,
-            emailClient || 'N/A',
-            quantity,
-            prix_vente_unitaire, // Pris directement de la BD
-            montantTotal,
-            zone_stockage,       
-            unite               
-        ]);
+
+// 2. Le tableau de valeurs (DOIT avoir exactement 6 éléments)
+// Supprime prix_vente_unitaire, montantTotal et unite du tableau car le SQL les calcule déjà
+const values = [
+    users_id,        // $1
+    productId,       // $2
+    orgId,           // $3
+    quantity,        // $4
+    nomClient,       // $5
+    telephoneClient  // $6
+];
+
+// 3. Exécution de la requête
+const newSale = await client.query(saleQuery, values);
 
         // 4. MISE À JOUR DU STOCK ET DES STATISTIQUES
         await client.query(

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import type { Request, Response } from 'express';
 import { pool } from '../config/db'
 import type {Product, DashboardUser, dashboardResponse} from '../../../src/lib/type';

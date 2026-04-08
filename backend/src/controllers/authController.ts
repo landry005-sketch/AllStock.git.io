@@ -1,9 +1,10 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import type { Request, Response } from 'express';
 import bcrypt from 'bcrypt';
 import {pool, query} from '../config/db.js';
 import jwt from 'jsonwebtoken'
 import { v2 as cloudinary } from 'cloudinary';
-
+import nodemailer from 'nodemailer';
 import { sendCredentialsEmail } from '../mail/email.services.js';
 import crypto from 'crypto';
 
@@ -320,5 +321,103 @@ export const login = async (req: Request, res: Response) => {
     } catch (error) {
         console.error("Erreur Login:", error);
         res.status(500).json({ error: "Erreur serveur lors de la connexion." });
+    }
+};
+
+
+// ÉTAPE A : Demande de réinitialisation
+export const forgotPassword = async (req: Request, res: Response) => {
+    const { email } = req.body;
+    const client = await pool.connect();
+
+    try {
+        const userRes = await client.query('SELECT id FROM users WHERE email = $1', [email]);
+        if (userRes.rowCount === 0) {
+            return res.status(404).json({ error: "Aucun utilisateur avec cet email." });
+        }
+
+        // Génération d'un token de 32 caractères
+        const token = crypto.randomBytes(32).toString('hex');
+        const expires = new Date(Date.now() + 3600000); // Expire dans 1 heure
+        
+        const transporter = nodemailer.createTransport({
+          service: 'gmail',
+          host: process.env.EMAIL_HOST || 'smtp.gmail.com',
+          port: parseInt(process.env.EMAIL_PORT || '465'),
+          secure:true,
+          auth: {
+            user: process.env.EMAIL_USER,
+            pass: process.env.EMAIL_PASS,
+          },
+          tls:{
+            rejectUnauthorized: false
+          }
+        });
+        
+
+        await client.query(
+            'UPDATE users SET reset_token = $1, reset_token_expiry = $2 WHERE email = $3',
+            [token, expires, email]
+        );
+    const resetUrl = `http://localhost:5173/reset-password/${token}`;
+
+    const mailOptions = {
+        from: '"AllStock Support" <noreply@allstock.com>',
+        to: email,
+        subject: 'Réinitialisation de votre mot de passe - AllStock',
+        html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #ddd; padding: 20px;">
+                <h2 style="color: #4F46E5;">Réinitialisation de mot de passe</h2>
+                <p>Bonjour,</p>
+                <p>Vous avez demandé la réinitialisation de votre mot de passe pour votre compte <strong>AllStock</strong>.</p>
+                <p>Cliquez sur le bouton ci-dessous pour choisir un nouveau mot de passe. Ce lien est valable 1 heure.</p>
+                <a href="${resetUrl}" style="display: inline-block; padding: 10px 20px; background-color: #4F46E5; color: white; text-decoration: none; border-radius: 5px; margin: 20px 0;">Réinitialiser mon mot de passe</a>
+                <p>Si vous n'êtes pas à l'origine de cette demande, vous pouvez ignorer cet email.</p>
+                <hr>
+                <p style="font-size: 12px; color: #888;">L'équipe technique AllStock - Douala, Cameroun</p>
+            </div>
+        `
+    };
+
+    await transporter.sendMail(mailOptions);
+    res.json({ message: "Email de réinitialisation envoyé avec succès !" });
+        res.json({ message: "Lien de réinitialisation généré (Simulation)", token });
+
+    } catch (error: any) {
+        res.status(500).json({ error: error.message });
+    } finally {
+        client.release();
+    }
+};
+
+// ÉTAPE B : Mise à jour du mot de passe
+export const resetPassword = async (req: Request, res: Response) => {
+    const { token } = req.params;
+    const { password } = req.body;
+    const client = await pool.connect();
+
+    try {
+        const userRes = await client.query(
+            'SELECT id FROM users WHERE reset_token = $1 AND reset_token_expiry > NOW()',
+            [token]
+        );
+
+        if (userRes.rowCount === 0) {
+            return res.status(400).json({ error: "Token invalide ou expiré." });
+        }
+
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        await client.query(
+            'UPDATE users SET passeword_hash = $1, reset_token = NULL, reset_token_expiry = NULL WHERE id = $2',
+            [hashedPassword, userRes.rows[0].id]
+        );
+
+        res.json({ message: "Mot de passe mis à jour avec succès !" });
+
+    } catch (error: any) {
+        res.status(500).json({ error: error.message });
+    } finally {
+        client.release();
     }
 };

@@ -94,7 +94,7 @@ export default function Settings() {
       </div>
 
       {/* Profil utilisateur */}
-      <Card className="dark:bg-[#0f172a]">
+      <Card className="dark:bg-[#0f172a] ">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <UserIcon className="w-5 h-5 text-indigo-600" />
@@ -102,9 +102,9 @@ export default function Settings() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="flex items-center gap-6">
+          <div className="flex  items-center gap-6">
             <div className="relative">
-              <div className="w-24 h-24 bg-indigo-200 rounded-full flex items-center justify-center overflow-hidden">
+              <div className="md:w-24 h-10 w-10 md:h-24 bg-indigo-200 rounded-full flex items-center justify-center overflow-hidden">
                 {photoPreview ? (
                   <img src={photoPreview} alt="Profile" className="w-full h-full object-cover" />
                 ) : (
@@ -113,8 +113,8 @@ export default function Settings() {
                   </span>
                 )}
               </div>
-              <label htmlFor="photoUpload" className="absolute bottom-0 right-0 bg-indigo-600 text-white rounded-full p-2 cursor-pointer hover:bg-indigo-700">
-                <Camera className="w-4 h-4" />
+              <label htmlFor="photoUpload" className="absolute bottom-0 right-0 md:bg-indigo-600 text-white rounded-full p-2 cursor-pointer hover:bg-indigo-700">
+                <Camera className="md:w-4 md:h-4" />
                 <input 
                   id="photoUpload" 
                   type="file" 

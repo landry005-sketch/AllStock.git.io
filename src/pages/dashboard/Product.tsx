@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
@@ -217,7 +218,7 @@ export default function Products() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="grid gap-2 md:gap-0 md:flex items-center justify-between">
         <div>
           <h1 className="text-3xl mb-2">Gestion des Produits</h1>
           <p className="text-gray-600">{products.length} produits au total</p>
@@ -271,25 +272,23 @@ export default function Products() {
                 </div>
                 <div className="space-y-2">
                   <Label>Unité</Label>
-                  <Select
-    value={newProduct.unite}
-    onValueChange={(val) => setNewProduct({ ...newProduct, unite: val })}
-  >
-    <SelectTrigger className="w-full">
-      <SelectValue placeholder="Choisir une unité" />
-    </SelectTrigger>
-    <SelectContent className="z-9999">
-      {availableUnits.map((unit) => (
-        <SelectItem key={unit} value={unit}>
-          {unit}
-        </SelectItem>
-      ))}
-      {/* Option pour permettre d'ajouter une unité manuellement si besoin */}
-      <div className="border-t mt-2 p-2">
-         <p className="text-[10px] text-gray-400 uppercase font-bold">Unités enregistrées</p>
-      </div>
-    </SelectContent>
-  </Select>
+                    <Select
+                      value={newProduct.unite}
+                      onValueChange={(val) => setNewProduct({ ...newProduct, unite: val })}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Choisir une unité" />
+                      </SelectTrigger>
+                      <SelectContent className="z-9999">
+                        {availableUnits.map((unit) => (
+                          <SelectItem key={unit} value={unit}>
+                            {unit}
+                          </SelectItem>
+                        ))}
+            
+      
+                      </SelectContent>
+                    </Select>
                 </div>
                 <div className="space-y-2">
                   <Label>Quantité</Label>

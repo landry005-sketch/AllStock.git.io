@@ -198,9 +198,9 @@ console.log("Token:", token)
   return (
     
       <div className="space-y-6 dark:text-gray-50">
-      <div className="flex items-center justify-between">
+      <div className="grid md:gap-0 gap-2 md:flex items-center justify-between">
         <div>
-          <h1 className="text-3xl mb-2">Gestion des Catégories</h1>
+          <h1 className="text-xl md:text-3xl mb-2">Gestion des Catégories</h1>
           <p className="text-gray-600">{categories.length} catégories</p>
         </div>
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useRef, useState, useCallback, useEffect } from 'react';
 import Webcam from 'react-webcam';
 import { toast } from 'react-toastify';
@@ -10,15 +11,25 @@ import { Camera, Upload, Loader2, Save, RotateCcw, CheckCircle2, Scan } from "lu
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import BarreCodeScanner from '../CodeScan';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 const ScanProduct = () => {
+    const UNITES_OPTIONS = [
+        { label: "Pièce", value: "piece" },
+        { label: "Kilogramme", value: "kilo" },
+        { label: "Litre", value: "litre" },
+        { label: "Carton", value: "carton" },
+        { label: "Mètre", value: "metre" },
+    ];
     const webcamRef = useRef<Webcam>(null);
     const [isScanning, setIsScanning] = useState(false);
+    const [availableUnits, setAvailableUnits] = useState<any[]>([]);
     const [isSaving, setIsSaving] = useState(false);
     const [categories, setCategories] = useState<any[]>([]);
     const [preview, setPreview] = useState<string | null>(null);
     const [newProduct, setNewProduct] = useState({
         name: "",
+        unite:"",
         category_id: "",
         quantity: 0,
         purchasePrice: 0,
@@ -36,8 +47,25 @@ const ScanProduct = () => {
           const user = JSON.parse(userStr);
         
           fetchCategories(user.orgCode);
+          fetchExixtingsUnits(user.orgCode);
         }
     }, []);
+    const fetchExixtingsUnits = async (orgId: string) =>{
+    try{
+      const response = await fetch(`http://localhost:5000/api/stock/units?org_id=${orgId}`, {
+        headers: {
+          'Authorization': `Bearer: ${localStorage.getItem('token')}`
+        }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setAvailableUnits(data.length > 0 ? data: UNITES_OPTIONS.map(u => u.value));
+      }
+    }catch(error){
+      console.error("Erreur des unités", error)
+      setAvailableUnits(UNITES_OPTIONS.map(u =>u.value));
+    }
+  }
     
   const fetchCategories = async (orgId: string) => {
     try {
@@ -170,7 +198,7 @@ const ScanProduct = () => {
                         <TabsContent value="upload">
                             <label htmlFor="picture" className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-lg cursor-pointer bg-muted hover:bg-muted/80">
                                 <Upload className="w-8 h-8 text-muted-foreground mb-2" />
-                                <span className="text-sm">Cliquez pour uploader le reçu</span>
+                                <span className="text-[10px] md:text-sm">Cliquez pour uploader le reçu</span>
                                 <input id="picture" type="file" className="hidden" onChange={handleFileUpload} disabled={isScanning} />
                             </label>
                         </TabsContent>
@@ -219,7 +247,10 @@ const ScanProduct = () => {
                                 <TableRow>
                                     <TableHead>Produit</TableHead>
                                     <TableHead className="w-24">Quantité</TableHead>
-                                    <TableHead className="w-32">Prix Unitaire</TableHead>
+                                    <TableHead className="w-24">Prix Unitaire</TableHead>
+                                    <TableHead className='w-24'>Prix de vente</TableHead>
+                                    <TableHead>Zone de stockage</TableHead>
+                                    <TableHead>Unité</TableHead>
                                     <TableHead>Code Barre</TableHead>
                                     <TableHead>Categorie du produit</TableHead>
                                 </TableRow>
@@ -228,7 +259,17 @@ const ScanProduct = () => {
                                 {scannedData.produits.map((prod: any, idx: number) => (
                                     <TableRow key={idx}>
                                         <TableCell>
-                                            <Input value={prod.nom} onChange={(e) => handleProductChange(idx, 'nom', e.target.value)} />
+                                            <TooltipProvider>
+                                                <Tooltip>
+                                                    <TooltipTrigger>
+                                                        <Input  value={prod.nom} onChange={(e) => handleProductChange(idx, 'nom', e.target.value)} />
+                                                    </TooltipTrigger>
+                                                    <TooltipContent className="bg-slate-900 text-white p-2">
+                                                        <p>{prod.nom}</p>
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            </TooltipProvider>
+                                            
                                         </TableCell>
                                         <TableCell>
                                             <Input type="number" value={prod.quantite} onChange={(e) => handleProductChange(idx, 'quantite', e.target.value)} />
@@ -237,18 +278,47 @@ const ScanProduct = () => {
                                             <Input type="number" value={prod.prix_achat_unitaire} onChange={(e) => handleProductChange(idx, 'prix_achat_unitaire', e.target.value)} />
                                         </TableCell>
                                         <TableCell>
-                                            <Input type='text' value={prod.zone_stockage} onChange={(e) =>handleProductChange(idx, 'zone_stockage', e.target.value)}/>
+                                            <Input type="number" value={prod.prix_vente_unitaire} onChange={(e) => handleProductChange(idx, 'prix_vente_unitaire', e.target.value)} />
+                                        </TableCell>
+                                        <TableCell>
+                                            <Input className='' type='text' value={prod.zone_stockage} onChange={(e) =>handleProductChange(idx, 'zone_stockage', e.target.value)}/>
+                                        </TableCell>
+                                        <TableCell>
+                                             <Select
+                                                value={prod.unite || ""}
+                                                onValueChange={(val) => handleProductChange(idx, 'unite', val)}
+                                            >
+                                                <SelectTrigger className="w-full">
+                                                    <SelectValue placeholder="Choisir une unité" />
+                                                </SelectTrigger>
+                                                <SelectContent className="z-9999">
+                                                    {availableUnits.map((unit) => (
+                                                        <SelectItem key={unit} value={unit}>
+                                                            {unit}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
                                         </TableCell>
                                        <TableCell className="relative">
                                             <div className="flex items-center gap-2">
-                                                <Input 
-                                                    value={prod.code_barre} 
-                                                    placeholder="Code-barres"
-                                                    onChange={(e) => handleProductChange(idx, 'code_barre', e.target.value)} 
-                                                    className="dark:bg-slate-950 dark:border-slate-800"
-                                                />
-    
-
+                                                <TooltipProvider>
+                                                    <Tooltip>
+                                                        <TooltipTrigger>
+                                                            <Input 
+                                                                value={prod.code_barre} 
+                                                                placeholder="Code-barres"
+                                                                onChange={(e) => handleProductChange(idx, 'code_barre', e.target.value)} 
+                                                                className="dark:bg-slate-950 dark:border-slate-800"
+                                                            />
+                                                        </TooltipTrigger>
+                                                        <TooltipContent>
+                                                            <p>
+                                                                {prod.code_barre}
+                                                            </p>
+                                                        </TooltipContent>
+                                                    </Tooltip>
+                                                </TooltipProvider>
                                                 <Dialog>
                                                     <DialogTrigger asChild>
                                                         <Button 
@@ -278,7 +348,7 @@ const ScanProduct = () => {
                                             </div>
                                         </TableCell>
                                         <TableCell>
-                                            <Select value={newProduct.category_id} onValueChange={(val) => setNewProduct({ ...newProduct, category_id: val })}>
+                                            <Select value={prod.category_id} onValueChange={(val) => handleProductChange(idx, 'category_id', val)}>
                                                 <SelectTrigger><SelectValue placeholder="Choisir..." /></SelectTrigger>
                                                 <SelectContent>
                                                     {categories.map((cat) => (

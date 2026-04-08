@@ -8,7 +8,7 @@ const Landing = () => {
 
   return (
     
-    <div className="min-h-screen min-w-screen relative bg-gray-50 text-center font-sans text-slate-900 selection:bg-indigo-100">
+    <div className="min-h-screen min-w-screen relative  dark:bg-[#0f172a] bg-gray-50 text-center font-sans text-slate-900 selection:bg-indigo-100">
       {/* Navigation / Logo */}
       <AnimationBackground/>
       <nav className="max-w-7xl mx-auto px-8 py-10 flex justify-between items-center">
@@ -20,7 +20,7 @@ const Landing = () => {
               <line x1="12" y1="22.08" x2="12" y2="12"></line>
             </svg>
           </div>
-          <span className="text-2xl font-extrabold tracking-tight text-[#1e293b]">AllStock</span>
+          <span className="text-2xl font-extrabold tracking-tight dark:text-white text-[#1e293b]">AllStock</span>
         </div>
       </nav>
 
@@ -29,17 +29,17 @@ const Landing = () => {
         <div className="inline-block px-4 py-1.5 mb-6 text-sm font-semibold text-[#5d5cde] bg-blue-50 rounded-full border border-blue-100 animate-pulse">
           Nouveauté : Analyses Prédictives par IA disponibles
         </div>
-        <h1 className="text-5xl md:text-7xl font-extrabold mb-8 leading-[1.15] bg-linear-to-r from-slate-900 to-[#5d5cde] bg-clip-text text-transparent">
+        <h1 className="text-2xl md:text-7xl font-extrabold mb-8 leading-[1.15] bg-linear-to-r dark:from-slate-500 from-slate-900 to-[#5d5cde] dark:to-blue-200 bg-clip-text text-transparent">
           L'intelligence au service <br />de votre inventaire.
         </h1>
-        <p className="text-xl text-slate-600 max-w-2xl mx-auto mb-12 leading-relaxed">
+        <p className="text-sm md:text-xl dark:text-white text-slate-600 max-w-2xl mx-auto mb-12 leading-relaxed">
           AllStock transforme la complexité de votre logistique en un avantage compétitif. Un outil complet, intuitif et puissant pour piloter votre croissance.
         </p>
         
         <div className="flex flex-col items-center gap-6">
           <button 
             onClick={() => window.location.href = '/accueil'} 
-            className="group relative bg-[#5d5cde] text-white px-12 py-5 rounded-2xl text-lg font-bold shadow-xl hover:shadow-indigo-200 hover:scale-[1.02] transition-all duration-300 overflow-hidden"
+            className="group relative bg-[#5d5cde] text-white px-4 md:px-12 py-5 rounded-2xl text-sm md:text-lg font-bold shadow-xl hover:shadow-indigo-200 hover:scale-[1.02] transition-all duration-300 overflow-hidden"
           >
             <span className="relative z-10">Commencer mon essai gratuit</span>
             <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
@@ -55,7 +55,7 @@ const Landing = () => {
       <section className="max-w-7xl mx-auto px-6 py-20">
         
         <div className="text-center mb-20">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">Fonctionnalités avancées</h2>
+          <h2 className="text-xl md:text-4xl font-bold mb-4">Fonctionnalités avancées</h2>
           <div className="w-20 h-1.5 bg-[#5d5cde] mx-auto rounded-full"></div>
         </div>
 
@@ -96,9 +96,9 @@ const Landing = () => {
       </section>
 
       {/* Stats Section */}
-      <section className="bg-[#1e293b] py-24 text-white">
+      <section className="bg-[#1e293b] py-16 md:py-24 text-white">
         <div className="max-w-7xl mx-auto px-6 text-center">
-          <div className="grid md:grid-cols-3 gap-12">
+          <div className="grid md:grid-cols-3 gap-4 md:gap-12">
             <StatItem value="10k+" label="Entreprises nous font confiance" />
             <StatItem value="50M+" label="Articles suivis quotidiennement" />
             <StatItem value="99.9%" label="Temps de disponibilité garanti" />
@@ -108,8 +108,8 @@ const Landing = () => {
 
       {/* FAQ Section */}
       <section className="max-w-4xl mx-auto px-6 py-24">
-        <h2 className="text-3xl font-bold text-center mb-12">Questions fréquentes</h2>
-        <div className="space-y-4">
+        <h2 className="text-xl md:text-3xl font-bold text-center mb-12">Questions fréquentes</h2>
+        <div className="space-y-4 text-lg md:text-xl">
           <AccordionItem 
             title="L'essai est-il vraiment gratuit ?" 
             content="Oui, pendant 14 jours, vous avez accès à l'intégralité des fonctionnalités premium d'AllStock. Aucune carte de crédit n'est requise pour commencer."
@@ -125,9 +125,9 @@ const Landing = () => {
       <section className="max-w-7xl mx-auto px-6 mb-24">
         <div className="bg-linear-to-br from-[#5d5cde] to-[#4a49b8] rounded-[40px] p-12 md:p-20 text-center text-white shadow-2xl relative overflow-hidden">
           <div className="relative z-10">
-            <h2 className="text-4xl md:text-5xl font-black mb-6 leading-tight">Prêt à transformer <br />votre logistique ?</h2>
-            <p className="text-xl text-blue-100 mb-10 max-w-xl mx-auto">Rejoignez la nouvelle ère de la gestion de stock dès aujourd'hui.</p>
-            <button className="bg-white text-[#5d5cde] px-12 py-5 rounded-2xl text-lg font-bold shadow-xl hover:bg-blue-50 transition-colors" onClick={() => {window.location.href='/accueil'}}>
+            <h2 className="text-xl md:text-5xl font-black mb-6 leading-tight">Prêt à transformer <br />votre logistique ?</h2>
+            <p className="text-sm text-blue-100 mb-10 max-w-xl mx-auto">Rejoignez la nouvelle ère de la gestion de stock dès aujourd'hui.</p>
+            <button className="bg-white text-[#5d5cde] px-12 py-5 rounded-2xl text-sm md:text-lg font-bold shadow-xl hover:bg-blue-50 transition-colors" onClick={() => {window.location.href='/accueil'}}>
               Commencer maintenant
             </button>
           </div>
@@ -137,7 +137,7 @@ const Landing = () => {
       </section>
 
       {/* Footer */}
-      <footer className="bg-white border-t border-slate-100 py-16">
+      <footer className="bg-white border-t border-slate-100 dark:text-slate-400 dark:bg-[#0f172a] py-16">
         <div className="max-w-7xl mx-auto px-8 grid md:grid-cols-4 gap-12">
           <div className="col-span-1 md:col-span-2">
             <div className="flex items-center gap-3 mb-6">
@@ -149,20 +149,20 @@ const Landing = () => {
             <p className="text-slate-500 max-w-sm">La plateforme de gestion de stock nouvelle génération pour les entreprises ambitieuses.</p>
           </div>
           <div>
-            <h4 className="font-bold mb-6 text-slate-900">Produit</h4>
-            <ul className="space-y-4 text-slate-500 text-sm">
-              <li className="hover:text-[#5d5cde] cursor-pointer">Fonctionnalités</li>
-              <li className="hover:text-[#5d5cde] cursor-pointer">Tarifs</li>
-              <li className="hover:text-[#5d5cde] cursor-pointer">Sécurité</li>
-            </ul>
+            <h4 className="font-bold mb-6 dark:text-white text-slate-900">Produit</h4>
+            <div className="space-x-4 justify-center md:space-y-4 text-slate-500 text-[10px] flex md:flex-col md:text-sm">
+              <p className="hover:text-[#5d5cde] cursor-pointer">Fonctionnalités</p>
+              <p className="hover:text-[#5d5cde] cursor-pointer">Tarifs</p>
+              <p className="hover:text-[#5d5cde] cursor-pointer">Sécurité</p>
+            </div>
           </div>
           <div>
-            <h4 className="font-bold mb-6 text-slate-900">Support</h4>
-            <ul className="space-y-4 text-slate-500 text-sm">
-              <li className="hover:text-[#5d5cde] cursor-pointer">Contact</li>
-              <li className="hover:text-[#5d5cde] cursor-pointer">Centre d'aide</li>
-              <li className="hover:text-[#5d5cde] cursor-pointer">API</li>
-            </ul>
+            <h4 className="font-bold mb-6 dark:text-white text-slate-900">Support</h4>
+            <div className="space-x-4 justify-center md:space-y-4 text-slate-500 text-[10px] flex md:flex-col md:text-sm">
+              <p className="hover:text-[#5d5cde] cursor-pointer">Contact</p>
+              <p className="hover:text-[#5d5cde] cursor-pointer">Centre d'aide</p>
+              <p className="hover:text-[#5d5cde] cursor-pointer">API</p>
+            </div>
           </div>
         </div>
         <div className="max-w-7xl mx-auto px-8 mt-16 pt-8 border-t border-slate-50 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-slate-400 font-medium">

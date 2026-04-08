@@ -70,7 +70,7 @@ export default function DashboardHome() {
     <div className="space-y-6 ">
       {/* Header */}
       <div>
-        <h1 className="text-3xl mb-2 font-bold uppercase tracking-tight">Tableau de bord</h1>
+        <h1 className="text-xl md:text-3xl mb-2 font-bold uppercase tracking-tight">Tableau de bord</h1>
         <p className="text-gray-600 italic">
           Session active : {currentUser.username} | Accès : <span className="text-indigo-600 font-bold">{currentUser.role.toUpperCase()}</span>
         </p>

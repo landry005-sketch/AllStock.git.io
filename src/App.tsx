@@ -18,6 +18,8 @@ import Suppliers from './pages/dashboard/Suppliers';
 import Sales from './pages/dashboard/Sales';
 import Settings from './pages/dashboard/settings';
 import { ThemeProvider } from './ThemeContent';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 
 
 
@@ -39,6 +41,8 @@ function App() {
             <Route path='/register-employé' element={<RegistrerEmployer/>}/>
             <Route path='/register-director' element={<RegisterOrganisation/>}/>
             <Route path='/login' element={<Login/>}/>
+            <Route path='/mot-de-passe-oublie' element={<ForgotPassword/>}/>
+            <Route path='reset-password/:token' element={<ResetPassword/>} />
             <Route path="/complete-setup" element={<CompleteSetup />} />
             <Route element={<ProtectedRoute/>}>
             {/*Route privée*/}

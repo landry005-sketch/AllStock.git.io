@@ -61,7 +61,6 @@ export const addProductManual = async (req: Request, res: Response) => {
 
         await client.query('COMMIT');
 
-        // On renvoie l'objet avec les alias attendus par ton Front
         res.status(201).json({
             ...product,
             name: product.nom,

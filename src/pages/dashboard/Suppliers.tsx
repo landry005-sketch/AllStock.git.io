@@ -141,9 +141,9 @@ export default function Suppliers() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="md:flex grid gap-2 md:gap-0 items-center justify-between">
         <div>
-          <h1 className="text-3xl mb-2 font-bold">Gestion des Fournisseurs</h1>
+          <h1 className="text-xl md:text-3xl mb-2 font-bold">Gestion des Fournisseurs</h1>
           <p className="text-gray-600">{suppliers.length} partenaires enregistrés</p>
         </div>
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>

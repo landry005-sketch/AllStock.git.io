@@ -218,9 +218,9 @@ const Users = () => {
   return (
     
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="grid md:gap-0 gap-2 md:flex items-center justify-between">
         <div>
-          <h1 className="text-3xl mb-2">Gestion des Utilisateurs</h1>
+          <h1 className="text-lg md:text-3xl mb-2">Gestion des Utilisateurs</h1>
           <p className="text-gray-600">{users.length } utilisateurs</p>
         </div>
         
