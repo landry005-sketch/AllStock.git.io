@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import type { Request, Response } from 'express';
 import { pool } from '../config/db';
 export const addProductManual = async (req: Request, res: Response) => {

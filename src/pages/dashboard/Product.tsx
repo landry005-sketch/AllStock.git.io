@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useState, useEffect } from "react";
+
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
@@ -20,6 +21,29 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "../../components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select";
+import { Package, Plus, Trash2, Edit, QrCode, AlertCircle, Loader2, SquareDashed, Barcode, ScanBarcode } from "lucide-react";
+import { format } from "date-fns";
+import { toast } from "react-toastify";
+
+// Une fonction debounce simple pour éviter les appels API excessifs
+function useDebounce(value: string, delay: number) {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    // Annuler le timeout si la valeur change (ou si le composant est démonté)
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
+}
+
 const UNITES_OPTIONS = [
   { label: "Pièce", value: "piece" },
   { label: "Kilogramme", value: "kilo" },
@@ -27,12 +51,11 @@ const UNITES_OPTIONS = [
   { label: "Carton", value: "carton" },
   { label: "Mètre", value: "metre" },
 ];
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select";
-import { Package, Plus, Trash2, Edit, QrCode, AlertCircle, Loader2, SquareDashed, Barcode, ScanBarcode } from "lucide-react";
-import { format } from "date-fns";
-import { toast } from "react-toastify";
 
 export default function Products() {
+  const [suggestedAttributes, setSuggestedAttributes] = useState<string[]>([]);
+  const [selectedAttributes, setSelectedAttributes] = useState<string[]>([]);
+  
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [products, setProducts] = useState<any[]>([]);
   const [availableUnits, setAvailableUnits] = useState<any[]>([]);
@@ -40,75 +63,106 @@ export default function Products() {
   const [isLoading, setIsLoading] = useState(true);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [error, setError] = useState('')
-
-  const [newProduct, setNewProduct] = useState({
-  name: "",
-  category_id: "",
-  unite: "pce",
-  quantity: 0,
-  purchasePrice: 0,
-  sellingPrice: 0,
-  supplier_id: "", // ID du fournisseur sélectionné
-  expiryDate: "",
-  storageZone: "",
-  code_barre: ""
-});
-
   
-  // --- 1. CHARGEMENT INITIAL ---
+  const [newProduct, setNewProduct] = useState({
+    name: "",
+    category_id: "",
+    unite: "pce",
+    quantity: 0,
+    purchasePrice: 0,
+    sellingPrice: 0,
+    supplier_id: "",
+    expiryDate: "",
+    storageZone: "",
+    code_barre: ""
+  });
+
+  // Utilisation du hook de debounce pour le nom du produit
+  const debouncedProductName = useDebounce(newProduct.name, 500); // 500ms de délai
+
+  // --- 1. LOGIQUE DE SUGGESTION DE VARIANTES (IA) ---
+  const suggestVariants = async (productName: string) => {
+    if (productName.length < 3) return;
+    try {
+      const response = await fetch('http://localhost:5000/api/stock/suggest-variants', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}` 
+        },
+        body: JSON.stringify({ productName }),
+      });
+      if (response.ok) {
+        const data = await response.json();
+        // Filtrer les suggestions pour ne pas montrer celles déjà sélectionnées
+        const newSuggestions = (data.attributes || []).filter((attr: string) => !selectedAttributes.includes(attr));
+        setSuggestedAttributes(newSuggestions);
+      }
+    } catch (error) {
+      console.error("Erreur de suggestion de variantes:", error);
+    }
+  };
+  
+  useEffect(() => {
+    if (debouncedProductName) {
+      suggestVariants(debouncedProductName);
+    }
+  }, [debouncedProductName]); // Se déclenche uniquement quand la valeur "débouncée" change
+
+  // Fonction pour ajouter un attribut suggéré aux variantes sélectionnées
+  const handleSelectAttribute = (attribute: string) => {
+    setSelectedAttributes(prev => [...prev, attribute]);
+    setSuggestedAttributes(prev => prev.filter(attr => attr !== attribute));
+  };
+  
+  // Fonction pour retirer une variante sélectionnée
+  const handleRemoveAttribute = (attribute: string) => {
+    setSelectedAttributes(prev => prev.filter(attr => attr !== attribute));
+    // Optionnel: remettre l'attribut dans les suggestions
+    if (!suggestedAttributes.includes(attribute)) {
+        setSuggestedAttributes(prev => [...prev, attribute]);
+    }
+  };
+
+
+  // --- 2. CHARGEMENT INITIAL DES DONNÉES ---
   useEffect(() => {
     const userStr = localStorage.getItem("currentUser");
     if (userStr) {
       const user = JSON.parse(userStr);
+      const orgId = user.orgCode || user.org_id;
       setCurrentUser(user);
-      fetchProducts(user.orgCode);
-      fetchCategories(user.orgCode);
-      loadProducts();
-      fetchExixtingsUnits(user.orgCode);
+      fetchProducts(orgId);
+      fetchCategories(orgId);
+      fetchExistingUnits(orgId);
+    } else {
+        setIsLoading(false);
+        toast.error("Utilisateur non connecté. Veuillez vous reconnecter.");
     }
   }, []);
-  const fetchExixtingsUnits = async (orgId: string) =>{
-    try{
+
+  const fetchExistingUnits = async (orgId: string) => {
+    try {
       const response = await fetch(`http://localhost:5000/api/stock/units?org_id=${orgId}`, {
         headers: {
-          'Authorization': `Bearer: ${localStorage.getItem('token')}`
+          // Correction: Espace après "Bearer"
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
       });
       if (response.ok) {
         const data = await response.json();
-        setAvailableUnits(data.length > 0 ? data: UNITES_OPTIONS.map(u => u.value));
+        setAvailableUnits(data.length > 0 ? data : UNITES_OPTIONS.map(u => u.value));
+      } else {
+         setAvailableUnits(UNITES_OPTIONS.map(u => u.value));
       }
-    }catch(error){
-      console.error("Erreur des unités", error)
-      setAvailableUnits(UNITES_OPTIONS.map(u =>u.value));
-    }
-  }
-  const loadProducts = async () => {
-    try {
-      setIsLoading(true);
-      
-      // On récupère l'utilisateur pour avoir son org_id
-      const userStr = localStorage.getItem("currentUser");
-      if (!userStr) throw new Error("Utilisateur non connecté");
-      
-      const user = JSON.parse(userStr);
-      const orgId = user.orgCode || user.org_id; // Supporte les deux formats
-
-      // Appel à ton API Backend
-      const response = await fetch(`http://localhost:5000/api/stock/products?orgId=${orgId}`);
-      
-      if (!response.ok) throw new Error("Erreur lors de la récupération des données");
-      
-      const data = await response.json();
-      setProducts(data);
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setIsLoading(false);
+    } catch (error) {
+      console.error("Erreur des unités", error);
+      setAvailableUnits(UNITES_OPTIONS.map(u => u.value));
     }
   };
+
   const fetchProducts = async (orgId: string) => {
+    setIsLoading(true);
     try {
       const response = await fetch(`http://localhost:5000/api/stock/products?org_id=${orgId}`, {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
@@ -116,9 +170,11 @@ export default function Products() {
       if (response.ok) {
         const data = await response.json();
         setProducts(data);
+      } else {
+        toast.error("Erreur lors du chargement des produits.");
       }
     } catch (error) {
-      toast.error("Erreur lors du chargement des produits");
+      toast.error("Erreur réseau lors du chargement des produits.");
     } finally {
       setIsLoading(false);
     }
@@ -138,83 +194,102 @@ export default function Products() {
     }
   };
 
-  // --- 2. ACTIONS ---
- const handleAddProduct = async (e: React.FormEvent) => {
-  e.preventDefault();
-  const toastId = toast.loading("Enregistrement...");
+  // --- 3. ACTIONS UTILISATEUR (CRUD) ---
+  const handleAddProduct = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const toastId = toast.loading("Enregistrement...");
 
-  // Préparation des données pour correspondre au backend
-  const productToSave = {
-    ...newProduct,
-    category_id: newProduct.category_id === "" ? null : newProduct.category_id,
-    org_id: currentUser.orgCode || currentUser.org_id //
+    // Logique pour combiner le nom et les variantes
+    const finalProductName = selectedAttributes.length > 0 
+        ? `${newProduct.name} (${selectedAttributes.join(', ')})`
+        : newProduct.name;
+
+    const productToSave = {
+      ...newProduct,
+      name: finalProductName,
+      category_id: newProduct.category_id === "" ? null : newProduct.category_id,
+      org_id: currentUser.orgCode || currentUser.org_id
+    };
+
+    try {
+      const response = await fetch('http://localhost:5000/api/stock/addProduct', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}` 
+        },
+        body: JSON.stringify(productToSave),
+      });
+
+      if (response.ok) {
+        const addedProduct = await response.json();
+        
+        // On s'assure que le produit ajouté a les bonnes clés pour l'affichage immédiat.
+        // NOTE: Idéalement, l'API devrait retourner un format cohérent.
+        const formattedProduct = {
+          ...addedProduct,
+          name: addedProduct.nom || addedProduct.name,
+          quantity: addedProduct.quantite_stock || addedProduct.quantity,
+          category_name: categories.find(c => String(c.id) === String(productToSave.category_id))?.nom || "Général"
+        };
+        
+        setProducts([formattedProduct, ...products]);
+        setIsAddDialogOpen(false);
+        // Reset du formulaire et des états de variantes
+        setNewProduct({ name: "", category_id: "", unite: "pce", quantity: 0, purchasePrice: 0, sellingPrice: 0, supplier_id: "", expiryDate: "", storageZone: "", code_barre: "" });
+        setSelectedAttributes([]);
+        setSuggestedAttributes([]);
+        toast.update(toastId, { render: "Produit enregistré !", type: "success", isLoading: false, autoClose: 2000 });
+      } else {
+        const err = await response.json();
+        throw new Error(err.error || "Erreur lors de l'ajout");
+      }
+    } catch (error: any) {
+      toast.update(toastId, { render: error.message, type: "error", isLoading: false, autoClose: 3000 });
+    }
   };
 
-  try {
-    const response = await fetch('http://localhost:5000/api/stock/addProduct', {
-      method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('token')}` 
-      },
-      body: JSON.stringify(productToSave),
-    });
-
-    if (response.ok) {
-      const addedProduct = await response.json();
-      
-      // On s'assure que le produit ajouté a les bonnes clés pour l'affichage immédiat
-      const formattedProduct = {
-        ...addedProduct,
-        name: addedProduct.nom || addedProduct.name,
-        quantity: addedProduct.quantite_stock || addedProduct.quantity,
-        category_name: categories.find(c => String(c.id) === String(productToSave.category_id))?.nom || "Général"
-      };
-
-      setProducts([formattedProduct, ...products]);
-      setIsAddDialogOpen(false);
-      setNewProduct({ name: "", category_id: "", unite: "pce", quantity: 0, purchasePrice: 0, sellingPrice: 0, supplier_id: "", expiryDate: "", storageZone: "", code_barre: "" });
-      toast.update(toastId, { render: "Produit enregistré !", type: "success", isLoading: false, autoClose: 2000 });
-    } else {
-      const err = await response.json();
-      throw new Error(err.error || "Erreur lors de l'ajout");
-    }
-  } catch (error: any) {
-    toast.update(toastId, { render: error.message, type: "error", isLoading: false, autoClose: 3000 });
-  }
-};
   const handleDeleteProduct = async (id: string) => {
-    if (!confirm("Supprimer ce produit ?")) return;
+    if (!window.confirm("Supprimer ce produit ? Cette action est irréversible.")) return;
     
+    const toastId = toast.loading("Suppression...");
     try {
       const response = await fetch(`http://localhost:5000/api/stock/deleteProduct/${id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
       });
-
       if (response.ok) {
         setProducts(products.filter((p) => p.id !== id));
-        toast.success("Produit supprimé");
+        toast.update(toastId, { render: "Produit supprimé", type: "success", isLoading: false, autoClose: 2000 });
+      } else {
+         throw new Error("Échec de la suppression");
       }
-    } catch (error) {
-      toast.error("Erreur lors de la suppression");
+    } catch (error: any) {
+      toast.update(toastId, { render: error.message || "Erreur lors de la suppression", type: "error", isLoading: false, autoClose: 3000 });
     }
   };
 
-  // --- 3. LOGIQUE DE FILTRE ---
+  // --- 4. LOGIQUE D'AFFICHAGE ET DE FILTRE ---
   const filteredProducts = products.filter((product) =>
     product.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     product.category_name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const isExpiringSoon = (expiryDate: string) => {
-    if (!expiryDate) return false;
-    const expiry = new Date(expiryDate);
+  const isExpiringSoon = (expiryDateStr: string | null) => {
+    if (!expiryDateStr) return false;
+    const expiry = new Date(expiryDateStr);
+    if (isNaN(expiry.getTime())) return false; // Date invalide
+    
     const daysUntil = Math.ceil((expiry.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
-    return daysUntil <= 7 && daysUntil > 0;
+    return daysUntil <= 7 && daysUntil >= 0;
+  };
+  
+  const isValidDate = (dateStr: string | null) => {
+    if (!dateStr) return false;
+    return !isNaN(new Date(dateStr).getTime());
   };
 
-  if (isLoading) return <div className="flex justify-center p-10"><Loader2 className="animate-spin" /></div>;
+  if (isLoading) return <div className="flex justify-center p-10"><Loader2 className="animate-spin text-indigo-600" size={48} /></div>;
 
   return (
     <div className="space-y-6">
@@ -235,33 +310,72 @@ export default function Products() {
             </DialogHeader>
             <form onSubmit={handleAddProduct} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
+                {/* NOM DU PRODUIT + SUGGESTIONS */}
+                <div className="space-y-2 col-span-2 md:col-span-1">
                   <Label>Nom du produit</Label>
-                  <Input value={newProduct.name} onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })} required />
+                  <Input 
+                    value={newProduct.name} 
+                    onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })} 
+                    placeholder="Ex: Samsung Galaxy A07"
+                    required 
+                  />
+                  
+                  {suggestedAttributes && suggestedAttributes.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mt-2">
+                        <span className="text-xs text-gray-500 mr-2">Suggestions IA:</span>
+                      {suggestedAttributes.map((attr, i) => (
+                        <button 
+                          key={i} 
+                          type="button" 
+                          onClick={() => handleSelectAttribute(attr)}
+                          className="px-2 py-0.5 text-xs bg-gray-200 dark:bg-gray-700 rounded-full hover:bg-indigo-200 dark:hover:bg-indigo-800 transition-colors"
+                        >
+                          + {attr}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
+                {/* ZONE DES VARIANTES SÉLECTIONNÉES */}
+                <div className="space-y-2 col-span-2 md:col-span-1">
+                  <Label>Variantes</Label>
+                  <div className="flex flex-wrap gap-2 min-h-[40px] p-2 border rounded-md bg-slate-50/50 dark:bg-slate-900/50">
+                    {selectedAttributes.length === 0 && <span className="text-xs text-gray-400 italic">Aucune variante</span>}
+                    {selectedAttributes.map((attr, index) => (
+                      <span 
+                        key={index} 
+                        className="flex items-center gap-1 px-2 py-1 text-xs bg-indigo-600 text-white rounded-md animate-in fade-in zoom-in duration-200"
+                      >
+                        {attr}
+                        <Trash2 
+                          className="w-3 h-3 cursor-pointer hover:text-red-200" 
+                          onClick={() => handleRemoveAttribute(attr)}
+                        />
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                {/* LE RESTE DU FORMULAIRE */}
                 <div className="space-y-2">
                   <Label>Code barre</Label>
-                  <div className="flex gap-2 justify-center items-center ">
+                  <div className="flex gap-2 justify-center items-center">
                     <Input value={newProduct.code_barre} onChange={(e) => setNewProduct({...newProduct, code_barre: e.target.value})}/>
-                    <ScanBarcode className="cursor-pointer"/>
+                    <ScanBarcode className="cursor-pointer text-gray-500 hover:text-indigo-600 transition-colors"/>
                   </div>
                 </div>
                 <div className="space-y-2">
-                   <Label>Zone de stockage</Label>
-                   <Input value={newProduct.storageZone} onChange={(e) => setNewProduct({ ...newProduct, storageZone: e.target.value })} />
+                    <Label>Zone de stockage</Label>
+                    <Input value={newProduct.storageZone} onChange={(e) => setNewProduct({ ...newProduct, storageZone: e.target.value })} />
                 </div>
-
                 <div className="space-y-2">
                   <Label>Catégorie</Label>
                   <Select 
                     value={newProduct.category_id} 
                     onValueChange={(val) => setNewProduct({ ...newProduct, category_id: val })}
                   >
-                    <SelectTrigger className="w-full">
-                              {/* On laisse SelectValue gérer l'affichage via le placeholder si vide */}
-                      <SelectValue placeholder="Choisir une catégorie" />
-                    </SelectTrigger>
-                    <SelectContent className="z-9999"> {/* Force l'affichage au-dessus de la modale */}
+                    <SelectTrigger><SelectValue placeholder="Choisir une catégorie" /></SelectTrigger>
+                    <SelectContent className="z-[9999]">
                       {categories.map((cat) => (
                         <SelectItem key={cat.id} value={String(cat.id)}>
                           {cat.nom || cat.name}
@@ -272,45 +386,38 @@ export default function Products() {
                 </div>
                 <div className="space-y-2">
                   <Label>Unité</Label>
-                    <Select
-                      value={newProduct.unite}
-                      onValueChange={(val) => setNewProduct({ ...newProduct, unite: val })}
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Choisir une unité" />
-                      </SelectTrigger>
-                      <SelectContent className="z-9999">
-                        {availableUnits.map((unit) => (
-                          <SelectItem key={unit} value={unit}>
-                            {unit}
-                          </SelectItem>
-                        ))}
-            
-      
-                      </SelectContent>
-                    </Select>
+                  <Select
+                    value={newProduct.unite}
+                    onValueChange={(val) => setNewProduct({ ...newProduct, unite: val })}
+                  >
+                    <SelectTrigger><SelectValue placeholder="Choisir une unité" /></SelectTrigger>
+                    <SelectContent className="z-[9999]">
+                      {availableUnits.map((unit) => (
+                        <SelectItem key={unit} value={unit}>{unit}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-2">
                   <Label>Quantité</Label>
-                  <Input type="number" value={newProduct.quantity} onChange={(e) => setNewProduct({ ...newProduct, quantity: Number(e.target.value) })} required />
+                  <Input type="text" value={newProduct.quantity} onChange={(e) => setNewProduct({ ...newProduct, quantity: Number(e.target.value) })} required />
                 </div>
-
                 <div className="space-y-2">
                   <Label>Prix d'achat (XAF)</Label>
                   <Input type="number" value={newProduct.purchasePrice} onChange={(e) => setNewProduct({ ...newProduct, purchasePrice: Number(e.target.value) })} required />
                 </div>
-
                 <div className="space-y-2">
                   <Label>Prix de vente (XAF)</Label>
                   <Input type="number" value={newProduct.sellingPrice} onChange={(e) => setNewProduct({ ...newProduct, sellingPrice: Number(e.target.value) })} required />
                 </div>
-
                 <div className="space-y-2">
                   <Label>Date de péremption</Label>
                   <Input type="date" value={newProduct.expiryDate} onChange={(e) => setNewProduct({ ...newProduct, expiryDate: e.target.value })} />
                 </div>
               </div>
-              <Button type="submit" className="w-full bg-indigo-600">Enregistrer le produit</Button>
+              <Button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-700 mt-4 transition-all">
+                Enregistrer le produit
+              </Button>
             </form>
           </DialogContent>
         </Dialog>
@@ -318,7 +425,7 @@ export default function Products() {
 
       <Card className="dark:bg-[#0f172a]">
         <CardContent className="pt-6">
-          <Input placeholder="Rechercher un produit..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+          <Input placeholder="Rechercher par nom, catégorie..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
         </CardContent>
       </Card>
 
@@ -329,47 +436,47 @@ export default function Products() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="font-semibold">ID</TableHead>
-                  <TableHead className="font-semibold">Code barre</TableHead>
-                  <TableHead className="font-semibold">Nom</TableHead>
-                  <TableHead className="font-semibold">Catégorie</TableHead>
-                  <TableHead className="font-semibold">Stock</TableHead>
-                  <TableHead className="font-semibold">Zone de stockage</TableHead>
-                  <TableHead className="font-semibold">Unité</TableHead>
-                  <TableHead className="font-semibold">Prix Vente</TableHead>
-                  <TableHead className="font-semibold">Fournisseur</TableHead>
-                  <TableHead className="font-semibold">Nombre de vente</TableHead>
-                  <TableHead className="font-semibold">Péremption</TableHead>
-                  <TableHead className="font-semibold">Actions</TableHead>
+                  <TableHead>ID</TableHead>
+                  <TableHead>Code barre</TableHead>
+                  <TableHead>Nom</TableHead>
+                  <TableHead>Catégorie</TableHead>
+                  <TableHead>Stock</TableHead>
+                  <TableHead>Stockage</TableHead>
+                  <TableHead>Unité</TableHead>
+                  <TableHead>Prix Vente</TableHead>
+                  <TableHead>Fournisseur</TableHead>
+                  <TableHead>Ventes</TableHead>
+                  <TableHead>Péremption</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredProducts.map((product) => (
                   <TableRow key={product.id}>
-                    <TableCell className="font-mono text-xs">{ product.id.slice(0,8)}</TableCell>
-                    <TableCell>{product.code_barre}</TableCell>
+                    <TableCell className="font-mono text-xs">{ product.id ? product.id.slice(0,8) : 'N/A'}</TableCell>
+                    <TableCell>{product.code_barre || "N/A"}</TableCell>
                     <TableCell className="font-medium">{product.name}</TableCell>
                     <TableCell><span className="px-2 py-1 bg-gray-100 rounded dark:bg-[#0f172a] dark:text-green-400 text-xs">{product.category_name || "Général"}</span></TableCell>
                     <TableCell><span className={product.quantity < 10 ? "text-red-600 font-bold" : ""}>{product.quantity}</span></TableCell>
                     <TableCell>{product.zone_stockage || "non définie"}</TableCell>
-                    <TableCell>{product.unite || "//"}</TableCell>
-                    <TableCell>{product.selling_price || product.sellingPrice} XAF</TableCell>
-                    <TableCell>{product.supplier_name || "Indéfinie"}</TableCell>
-                    <TableCell className="text-center font-bold text-indigo-600">
-                      {product.nombre_vente || product.sales || 0}
-                    </TableCell>
+                    <TableCell>{product.unite || "N/A"}</TableCell>
+                    <TableCell>{product.selling_price || product.sellingPrice || 0} XAF</TableCell>
+                    <TableCell>{product.supplier_name || "Indéfini"}</TableCell>
+                    <TableCell className="text-center font-bold text-indigo-600">{product.nombre_vente || product.sales || 0}</TableCell>
                     <TableCell>
-                      {product.expiry_date && (
+                      {isValidDate(product.expiry_date) ? (
                         <div className="flex items-center gap-1">
-                           {isExpiringSoon(product.expiry_date) && <AlertCircle className="w-3 h-3 text-red-500" />}
-                           <span className={isExpiringSoon(product.expiry_date) ? "text-red-500" : "Produit non perissable"}>
-                             {format(new Date(product.expiry_date), "dd/MM/yyyy")}
-                           </span>
+                            {isExpiringSoon(product.expiry_date) && <AlertCircle className="w-4 h-4 text-red-500" />}
+                            <span className={isExpiringSoon(product.expiry_date) ? "text-red-500 font-semibold" : ""}>
+                                {format(new Date(product.expiry_date), "dd/MM/yyyy")}
+                            </span>
                         </div>
+                      ) : (
+                        <span className="text-gray-400 text-xs">N/A</span>
                       )}
                     </TableCell>
                     <TableCell>
-                      <div className="flex gap-2">
+                      <div className="flex gap-1">
                         <Button variant="ghost" size="sm"><Edit className="w-4 h-4" /></Button>
                         <Button variant="ghost" size="sm" onClick={() => handleDeleteProduct(product.id)}><Trash2 className="w-4 h-4 text-red-500" /></Button>
                       </div>

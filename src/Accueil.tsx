@@ -49,7 +49,7 @@ const accueil = () => {
         </div>
       </div>
       <div className="my-8 gap-6  px-16 grid  md:flex">
-        <div className="flex w-min dark:bg-[#0f172a] gap-5 md:gap-0 md:w-1/3 shadow-2xl shadow-gray-300 bg-gray-50 rounded-xl border border-gray-400 px-6 py-6 justify-start items-center text-center">
+        <div className="flex w-min dark:shadow-black dark:bg-[#0f172a] gap-5 md:gap-0 md:w-1/3 shadow-2xl shadow-gray-300 bg-gray-50 rounded-xl border border-gray-400 px-6 py-6 justify-start items-center text-center">
           <div className="w-1/7 ">
             <TrendingUp className="text-blue-700" size={40}/>
           </div>
@@ -58,7 +58,7 @@ const accueil = () => {
             <p className="text-gray-700">Organisations</p>
           </div>
         </div>
-        <div className="flex w-min dark:bg-[#0f172a] gap-8 md:gap-0 md:w-1/3 shadow-2xl shadow-gray-300 bg-gray-50 rounded-xl border border-gray-400 md:px-6 px-9 py-6 justify-start items-center text-center">
+        <div className="flex w-min dark:shadow-black dark:bg-[#0f172a] gap-8 md:gap-0 md:w-1/3 shadow-2xl shadow-gray-300 bg-gray-50 rounded-xl border border-gray-400 md:px-6 px-9 py-6 justify-start items-center text-center">
           <div className="w-1/7 ">
             <Building2 color="green" className="text-blue-700" size={40}/>
           </div>
@@ -67,7 +67,7 @@ const accueil = () => {
             <p className="text-gray-700">Organisations</p>
           </div>
         </div>
-        <div className="flex w-min dark:bg-[#0f172a] gap-8 md:gap-0 md:w-1/3shadow-2xl shadow-gray-300 bg-gray-50 rounded-xl border border-gray-400 px-9 md:px-6 py-6 justify-start items-center text-center">
+        <div className="flex w-min dark:bg-[#0f172a] gap-8 md:gap-0 md:w-1/3 dark:shadow-black shadow-2xl shadow-gray-300 bg-gray-50 rounded-xl border border-gray-400 px-9 md:px-6 py-6 justify-start items-center text-center">
           <div className="w-1/7 ">
             <ShieldCheck color="purple" className="text-blue-700" size={40}/>
           </div>
@@ -115,9 +115,7 @@ const accueil = () => {
       
     
      
-      <footer className="bg-gray-50 flex justify-center h-20 items-center">
-        gyg
-      </footer>
+      
       </div>
       
     </div>

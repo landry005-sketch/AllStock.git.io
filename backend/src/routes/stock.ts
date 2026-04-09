@@ -4,7 +4,8 @@ import { confirmSave,  scanReceipt } from "../controllers/StockController";
 import { authenticateToken } from "../middlewares/authMiddleware";
 import { addCategory, alterCategorie, deleteCategory, getCategoryByOrg } from "../controllers/CategoryController";
 import { addProductManual, deleteProduct, getExistingUnits, getProducts } from "../controllers/ProductController";
-import { createSuppliers, deleteSuppliers, getSuppliers } from "@/controllers/FournisseurController";
+import { createSuppliers, deleteSuppliers, getSuppliers, sendSupplierOrder } from "@/controllers/FournisseurController";
+import { getProductSuggestions } from "@/controllers/AiController";
 
 const router = Router ()
 
@@ -20,5 +21,7 @@ router.get('/products', getProducts);
 router.post('/addsupplier', authenticateToken, createSuppliers);
 router.get('/getsupplier', authenticateToken, getSuppliers);
 router.delete('deletesupplier/:id', authenticateToken, deleteSuppliers);
-router.get('/units', authenticateToken,getExistingUnits)
+router.get('/units', authenticateToken,getExistingUnits);
+router.post('/send-supplier-order', authenticateToken, sendSupplierOrder);
+router.post('/suggest-variants', authenticateToken, getProductSuggestions);
 export default router

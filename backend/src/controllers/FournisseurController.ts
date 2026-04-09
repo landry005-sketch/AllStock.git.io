@@ -1,5 +1,7 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import type { Request, Response } from 'express';
 import { pool } from '../config/db';
+import nodemailer from 'nodemailer';
 //Créer tous es fournisseurs 
 export const createSuppliers = async (req: Request, res:Response) =>{
     const {
@@ -103,3 +105,69 @@ export const getSuppliers = async (req: Request, res: Response) => {
     res.status(500).json({ message: "Erreur serveur lors de la récupération" });
   }
 };
+export  const sendSupplierOrder = async (req:Request, res:Response) => {
+    const { supplierEmail, supplierName, items, deliveryDate } = req.body;
+    const {orgName }= req.body || "AllStock"; // Utilise "AllStock" si le nom est indéfini
+
+  // 1. Configuration du transporteur (Utilise tes variables d'environnement)
+  
+  const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    host: process.env.EMAIL_HOST || 'smtp.gmail.com',
+    port: parseInt(process.env.EMAIL_PORT || '465'),
+    secure:true,
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS,
+    },
+    tls:{
+      rejectUnauthorized: false
+    }
+  });
+
+  // 2. Création du tableau de produits en HTML
+  const itemsHtml = items.map((item: any) => `
+    <tr>
+      <td style="padding: 10px; border: 1px solid #ddd;">${item.productName}</td>
+      <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">${item.quantity}</td>
+    </tr>
+  `).join('');
+
+  // 3. Contenu de l'email
+  const mailOptions = {
+    from: `"${orgName} - AllStock" <${process.env.EMAIL_USER}>`,
+    to: supplierEmail,
+    subject: `Bon de Commande - ${orgName}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; color: #333;">
+        <h2 style="color: #4f46e5;">Bon de Commande</h2>
+        <p>Bonjour <strong>${supplierName}</strong>,</p>
+        <p>L'entreprise <strong>${orgName}</strong> souhaite commander les articles suivants pour une livraison prévue le <strong>${new Date(deliveryDate).toLocaleDateString('fr-FR')}</strong> :</p>
+        
+        <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+          <thead>
+            <tr style="background-color: #f8fafc;">
+              <th style="padding: 10px; border: 1px solid #ddd; text-align: left;">Désignation du Produit</th>
+              <th style="padding: 10px; border: 1px solid #ddd;">Quantité</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${itemsHtml}
+          </tbody>
+        </table>
+
+        <p style="margin-top: 30px;">Merci de nous confirmer la disponibilité de ces produits et de nous transmettre la facture proforma.</p>
+        <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+        <p style="font-size: 12px; color: #666;">Généré automatiquement par AllStock.</p>
+      </div>
+    `,
+  };
+
+  try {
+    await transporter.sendMail(mailOptions);
+    res.status(200).json({ message: "Email envoyé avec succès" });
+  } catch (error) {
+    console.error("Erreur envoi mail:", error);
+    res.status(500).json({ error: "Erreur lors de l'envoi de l'email" });
+  }
+}

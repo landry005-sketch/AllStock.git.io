@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-expressions */
 types/express.d.ts
 import { UserPayload } from './auth'; // Si tu as un type pour ton token
 
